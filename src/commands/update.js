@@ -1,8 +1,8 @@
-import chalk from 'chalk'
-import { fetchJsonFile } from '../utils/github.js'
-import { getMarketplace } from '../utils/registry.js'
-import { fetchPluginJson, installPlugin } from '../utils/installer.js'
-import { header, success, error, info, warn } from '../utils/exec.js'
+import chalk from 'chalk';
+import { entryTarget, getProviderFor } from '../utils/provider.js';
+import { getMarketplace } from '../utils/registry.js';
+import { fetchPluginJson, installPlugin } from '../utils/installer.js';
+import { header, success, error, info, warn } from '../utils/exec.js';
 
 /**
  * Re-download all installed plugins for a given marketplace.
@@ -25,10 +25,11 @@ export async function runUpdate(marketplaceName, options = {}) {
     return;
   }
 
-  const [owner, repo] = registry.repo.split('/');
+  const entry = entryTarget(registry);
+  const provider = getProviderFor(entry);
 
   // Need marketplace.json only to resolve each plugin's source path
-  const marketplace = await fetchJsonFile(owner, repo, registry.ref, registry.source);
+  const marketplace = await provider.fetchJsonFile(entry, registry.ref, registry.source);
   if (!marketplace) {
     error(`Could not fetch marketplace.json from ${registry.repo}`);
     return;
@@ -43,7 +44,7 @@ export async function runUpdate(marketplaceName, options = {}) {
       continue;
     }
 
-    const result = await fetchPluginJson(owner, repo, registry.ref, registry.source, pluginEntry.source);
+    const result = await fetchPluginJson(entry, registry.ref, registry.source, pluginEntry.source);
     if (!result) {
       warn(`Could not fetch plugin.json for "${pluginName}", skipping`);
       continue;
@@ -51,7 +52,7 @@ export async function runUpdate(marketplaceName, options = {}) {
 
     const { pluginJson, pluginBasePath } = result;
     info(`Updating ${pluginName} to v${pluginJson.version}...`);
-    await installPlugin(owner, repo, registry.ref, pluginBasePath, pluginJson, options);
+    await installPlugin(entry, registry.ref, pluginBasePath, pluginJson, options);
     success(`Updated ${chalk.bold(pluginName)}`);
   }
 

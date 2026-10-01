@@ -1,6 +1,6 @@
-import chalk from 'chalk'
-import { readRegistries } from '../utils/registry.js'
-import { header, info } from '../utils/exec.js'
+import chalk from 'chalk';
+import { readRegistries } from '../utils/registry.js';
+import { header, info } from '../utils/exec.js';
 
 /**
  * List all registered marketplaces and their installed plugins.
@@ -19,9 +19,18 @@ export async function runList() {
 
   for (const name of names) {
     const entry = registries[name];
+    const provider = entry.provider || 'github';
+    const transport = entry.transport || 'api';
+
     console.log();
     console.log(chalk.bold(name));
-    info(`repo: ${entry.repo}`);
+    info(`provider: ${provider} (${transport})`);
+    if (transport === 'ssh') {
+      info(`remote: git@${entry.host}:${entry.project || entry.repo}.git`);
+    } else if (provider === 'gitlab') {
+      info(`host: ${entry.scheme || 'https'}://${entry.host}`);
+    }
+    info(`repo: ${entry.project || entry.repo}`);
     info(`ref: ${entry.ref}`);
     info(`source: ${entry.source}`);
 

@@ -1,13 +1,15 @@
 {
   "name": "opencode-market",
-  "version": "0.0.8",
-  "description": "CLI to discover, install, and manage opencode agent plugins from GitHub marketplaces.",
+  "version": "0.1.0",
+  "description": "CLI to discover, install, and manage opencode agent plugins from GitHub or GitLab marketplaces.",
   "keywords": [
     "opencode",
     "marketplace",
     "agents",
     "skills",
     "plugins",
+    "github",
+    "gitlab",
     "cli"
   ],
   "homepage": "https://github.com/ckgrafico/opencode-market",

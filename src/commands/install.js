@@ -1,13 +1,13 @@
-import chalk from 'chalk'
-import { fetchJsonFile } from '../utils/github.js'
-import { getMarketplace, markInstalled } from '../utils/registry.js'
-import { fetchPluginJson, installPlugin } from '../utils/installer.js'
-import { header, success, error, info } from '../utils/exec.js'
+import chalk from 'chalk';
+import { entryTarget, getProviderFor } from '../utils/provider.js';
+import { getMarketplace, markInstalled } from '../utils/registry.js';
+import { fetchPluginJson, installPlugin } from '../utils/installer.js';
+import { header, success, error, info } from '../utils/exec.js';
 
 /**
  * Install a plugin from a registered marketplace.
  * @param {string} pluginAtMarketplace - "plugin@marketplace" format
- * @param {{ local?: boolean }} options
+ * @param {{ local?: boolean, opencode?: boolean }} options
  */
 export async function runInstall(pluginAtMarketplace, options = {}) {
   header('Installing plugin');
@@ -30,8 +30,9 @@ export async function runInstall(pluginAtMarketplace, options = {}) {
 
   info(`Looking up plugin "${pluginName}" in ${marketplaceName}...`);
 
-  const [owner, repo] = registry.repo.split('/');
-  const marketplace = await fetchJsonFile(owner, repo, registry.ref, registry.source);
+  const entry = entryTarget(registry);
+  const provider = getProviderFor(entry);
+  const marketplace = await provider.fetchJsonFile(entry, registry.ref, registry.source);
   if (!marketplace) {
     error(`Could not fetch marketplace.json from ${registry.repo}`);
     return;
@@ -47,7 +48,7 @@ export async function runInstall(pluginAtMarketplace, options = {}) {
     return;
   }
 
-  const result = await fetchPluginJson(owner, repo, registry.ref, registry.source, pluginEntry.source);
+  const result = await fetchPluginJson(entry, registry.ref, registry.source, pluginEntry.source);
   if (!result) {
     error(`Could not fetch plugin.json for "${pluginName}"`);
     return;
@@ -56,7 +57,7 @@ export async function runInstall(pluginAtMarketplace, options = {}) {
   const { pluginJson, pluginBasePath } = result;
   info(`Installing ${pluginName} v${pluginJson.version}...`);
 
-  await installPlugin(owner, repo, registry.ref, pluginBasePath, pluginJson, options);
+  await installPlugin(entry, registry.ref, pluginBasePath, pluginJson, options);
   await markInstalled(marketplaceName, pluginName);
 
   success(`Installed ${chalk.bold(pluginName)} from ${chalk.bold(marketplaceName)}`);

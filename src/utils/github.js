@@ -1,4 +1,13 @@
-import { execa } from 'execa'
+import { execa } from 'execa';
+
+/**
+ * GitHub provider. Implements the provider interface used across commands:
+ * fetchRawFile / fetchJsonFile / listDirectory / getDefaultBranch.
+ *
+ * Each function receives an `entry` descriptor: { project } where `project`
+ * is "owner/repo". GitHub only supports a two-segment path, so extra path
+ * segments (if any) are ignored when resolving owner/repo.
+ */
 
 /**
  * Get a GitHub auth token.
@@ -18,15 +27,21 @@ async function getToken() {
   return null;
 }
 
+function splitProject(project) {
+  const idx = project.indexOf('/');
+  if (idx === -1) throw new Error(`Invalid GitHub project: ${project}. Expected owner/repo`);
+  return [project.slice(0, idx), project.slice(idx + 1).split('/')[0]];
+}
+
 /**
  * Fetch a file from GitHub raw content API.
- * @param {string} owner - repo owner
- * @param {string} repo - repo name
+ * @param {{ project: string }} entry
  * @param {string} ref - branch or tag (e.g. "main")
  * @param {string} filePath - path within the repo
  * @returns {Promise<string|null>} file contents or null if not found
  */
-export async function fetchRawFile(owner, repo, ref, filePath) {
+export async function fetchRawFile(entry, ref, filePath) {
+  const [owner, repo] = splitProject(entry.project);
   const url = `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${filePath}`;
   const token = await getToken();
 
@@ -42,22 +57,43 @@ export async function fetchRawFile(owner, repo, ref, filePath) {
  * Fetch and parse a JSON file from GitHub.
  * @returns {Promise<object|null>}
  */
-export async function fetchJsonFile(owner, repo, ref, filePath) {
-  const text = await fetchRawFile(owner, repo, ref, filePath);
+export async function fetchJsonFile(entry, ref, filePath) {
+  const text = await fetchRawFile(entry, ref, filePath);
   if (text == null) return null;
-  return JSON.parse(text);
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve a repo's default branch (falls back to "main").
+ * @param {{ project: string }} entry
+ * @returns {Promise<string>}
+ */
+export async function getDefaultBranch(entry) {
+  const [owner, repo] = splitProject(entry.project);
+  const token = await getToken();
+  const headers = { Accept: 'application/vnd.github+json' };
+  if (token) headers.Authorization = `token ${token}`;
+
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers, signal: AbortSignal.timeout(10000) });
+  if (!res.ok) return 'main';
+  const data = await res.json();
+  return data.default_branch || 'main';
 }
 
 /**
  * List files in a GitHub directory using the Trees API.
- * Returns an array of { path, type } relative to the directory.
- * @param {string} owner
- * @param {string} repo
+ * Returns an array of { path, type } with repo-relative paths.
+ * @param {{ project: string }} entry
  * @param {string} ref
  * @param {string} dirPath - directory path within the repo (no trailing slash)
  * @returns {Promise<Array<{path: string, type: string}>>}
  */
-export async function listGitHubDirectory(owner, repo, ref, dirPath) {
+export async function listDirectory(entry, ref, dirPath) {
+  const [owner, repo] = splitProject(entry.project);
   const token = await getToken();
   const headers = { Accept: 'application/vnd.github+json' };
   if (token) headers.Authorization = `token ${token}`;
