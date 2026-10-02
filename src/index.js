@@ -14,10 +14,11 @@ function printHelp(version) {
   console.log('  npx opencode-market <command> [args] [options]');
   console.log();
   console.log('Commands:');
-  console.log('  add <source>              Register a marketplace (GitHub or GitLab)');
+  console.log('  add <source>               Register a marketplace (GitHub or GitLab)');
   console.log('  install <plugin>@<market>  Install a plugin from a registered marketplace');
   console.log('  update <marketplace>       Re-download all installed plugins for a marketplace');
-  console.log('  list                       List registered marketplaces and installed plugins');
+  console.log('  list [marketplace]         List registered marketplaces and installed plugins');
+  console.log('                             (--available also lists plugins/skills available to install)');
   console.log();
   console.log('Source formats (add):');
   console.log('  owner/repo                       GitHub (default, over API)');
@@ -33,6 +34,7 @@ function printHelp(version) {
   console.log('  --gitlab                  Treat a bare source as a GitLab project');
   console.log('  --github                  Force GitHub provider');
   console.log('  --ssh                     Use git-over-SSH transport (SSH key auth, no token)');
+  console.log('  -a, --available           With list: show plugins/skills available to install');
   console.log('  --host <host>             GitLab host[:port] or URL (also GITLAB_HOST env)');
   console.log('  --http                    Use http:// for the GitLab host (default: https)');
   console.log('  -h, --help                Show this help message');
@@ -44,7 +46,7 @@ function printHelp(version) {
 }
 
 function parseArgs(argv) {
-  const options = { local: false, opencode: false, gitlab: false, github: false, host: null, http: false, ssh: false };
+  const options = { local: false, opencode: false, gitlab: false, github: false, host: null, http: false, ssh: false, available: false };
   const positional = [];
 
   for (let i = 0; i < argv.length; i++) {
@@ -57,6 +59,7 @@ function parseArgs(argv) {
       case '--ssh': options.ssh = true; break;
       case '--host': options.host = argv[++i] ?? null; break;
       case '--http': options.http = true; break;
+      case '-a': case '--available': options.available = true; break;
       default:
         if (!a.startsWith('-')) positional.push(a);
     }
@@ -108,7 +111,7 @@ try {
       break;
 
     case 'list':
-      await runList();
+      await runList(arg, options);
       break;
 
     default:

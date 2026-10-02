@@ -8,7 +8,7 @@ CLI to discover, install, and manage opencode agent plugins from GitHub **or Git
 npx opencode-market add <source> [--gitlab] [--host <host>] [--http]
 npx opencode-market install <plugin>@<marketplace> [--local] [--opencode]
 npx opencode-market update <marketplace> [--local] [--opencode]
-npx opencode-market list
+npx opencode-market list [--available] [<marketplace>]
 ```
 
 ## Commands
@@ -69,6 +69,17 @@ Re-download all installed plugins for a marketplace. Fetches the latest files fr
 ### `list`
 
 Print all registered marketplaces and their installed plugins.
+
+```bash
+# Registered marketplaces + installed plugins
+npx opencode-market list
+
+# Also list every plugin/skill available to install (✓ marks installed ones)
+npx opencode-market list --available
+
+# Restrict to a single marketplace
+npx opencode-market list <marketplace> --available
+```
 
 ## Install destinations
 
